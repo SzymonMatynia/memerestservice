@@ -1,0 +1,23 @@
+#index:
+#    path: /
+#    controller: App\Controller\DefaultController::index
+
+api_get_memes:
+  path: /api/meme
+  controller: App\Controller\MemeApiController::getMemes
+
+api_get_meme:
+  path: /api/meme/{id}
+  controller: App\Controller\MemeApiController::getMeme
+
+api_add_meme:
+  path: /api/meme/add
+  controller: App\Controller\MemeApiController::addMeme
+
+api_update_meme:
+  path: /api/meme/{id}
+  controller: App\Controller\MemeApiController::updateMeme
+
+api_delete_meme:
+  path: /api/meme/{id}
+  controller: app\controller\MemeApiController::deleteMeme

@@ -5,19 +5,30 @@
 api_get_memes:
   path: /api/meme
   controller: App\Controller\MemeApiController::getMemes
+  methods: GET
 
 api_get_meme:
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::getMeme
+  methods: GET
+  requirements:
+    id: '\d+'
 
 api_add_meme:
   path: /api/meme/add
   controller: App\Controller\MemeApiController::addMeme
+  methods: POST
 
 api_update_meme:
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::updateMeme
+  methods: PUT
+  requirements:
+    id: '\d+'
 
 api_delete_meme:
   path: /api/meme/{id}
   controller: app\controller\MemeApiController::deleteMeme
+  methods: DELETE
+  requirements:
+    id: '\d+'

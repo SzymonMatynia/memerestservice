@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\MemeApi;
+use Doctrine\ORM\EntityManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,21 +12,34 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\MemeApiRepository;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\Serializer\SerializerInterface;
+
 class MemeApiController extends AbstractController
 {
     private $appKernel;
     private $memeApiRepository;
     private $em;
+    private $serializer;
+    private $validator;
     private const IMAGES_PATH = '/public/uploads/';
-    public function __construct(MemeApiRepository $memeApiRepository, EntityManagerInterface $em, KernelInterface $appKernel)
+    public function __construct(MemeApiRepository $memeApiRepository, EntityManagerInterface $em, KernelInterface $appKernel, SerializerInterface $serializer, ValidatorInterface $validator)
     {
         $this->memeApiRepository = $memeApiRepository;
         $this->em = $em;
         $this->appKernel = $appKernel;
+        $this->serializer = $serializer;
+        $this->validator = $validator;
     }
 
     public function getMemes()
     {
+        /* delete the data
+        $query = $this->em->getConnection()->query('TRUNCATE meme_api');
+        $query->execute();
+        */
+
+
         $memes = $this->memeApiRepository->findAll();
         // if any meme doesnt exist then return 404
         if(!$memes)
@@ -41,7 +55,8 @@ class MemeApiController extends AbstractController
         foreach($memes as $mms)
         {
             $path = $basePath . $mms->getImage();
-            $base64 = base64_encode(file_get_contents($basePath . $mms->getImage()));
+            $base64 = @base64_encode(file_get_contents($basePath . $mms->getImage()));
+            if(empty($base64)) continue; // what should i do?
             $type = pathinfo($path, PATHINFO_EXTENSION);
             $data[] = ['title' => $mms->getTitle(), 'base64' => $base64, 'type' => $type];
         }
@@ -107,30 +122,41 @@ class MemeApiController extends AbstractController
         // update the title of meme only if author or admin :)
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function addMeme(Request $request)
     {
 
-        $uploadedFile = $request->files->get('file');
-        //return new JsonResponse(var_dump($uploadedFile->getPathname()));
-        if(!isset($uploadedFile) || empty($uploadedFile)) return new JsonResponse(['message' => 'Please upload file.'], 400);
+        $data = json_decode($request->getContent(), true);
 
-        $uploadedFileType = $uploadedFile->getMimeType();
-
-
-        if(!($uploadedFileType == 'image/png' || $uploadedFileType == 'image/jpeg' || $uploadedFileType == 'image/gif'))
+        $title = $data['title'];
+        if(!$title) return new JsonResponse(['message' => 'You must provide title']);
+        $image = $data['image'];
+        $base64Image = @explode(',', $image)[1];
+        $decodedImage = base64_decode($base64Image, true);
+        $uniq = uniqid();
+        if(!$decodedImage)
         {
-            return new JsonResponse(['message' => 'Not allowed type sent.'], 400);
+            return new JsonResponse(['message' => 'Image not valid.']);
+        }
+        else
+        {
+            $imageType = explode('/', mime_content_type($image))[1];
+            file_put_contents($this->appKernel->getProjectDir() . MemeApiController::IMAGES_PATH . $uniq . "_" . $title . "." . $imageType, $decodedImage);
         }
 
         $memeApi = new MemeApi();
-        $memeApi->setTitle(uniqid());
-        $memeApi->setImage(MemeApiController::IMAGES_PATH . $memeApi->getTitle() . "." . $uploadedFile->getClientOriginalExtension());
+
+        $memeApi->setTitle($uniq . "_" . $title)->setImage(MemeApiController::IMAGES_PATH . $uniq . "_" . $title . "." . $imageType);
+
         $this->em->persist($memeApi);
         $this->em->flush();
 
-        move_uploaded_file($uploadedFile->getPathname(), $this->appKernel->getProjectDir() . $memeApi->getImage());
+        $jsonResponse = new JsonResponse(['message' => 'Image has been added.'], 200, [], false);
+        return $jsonResponse;
 
-        return new JsonResponse(['message' => 'Image ' . $uploadedFile->getClientOriginalName() . ' has been added to db with name: ' . $memeApi->getTitle()]);
     }
 }
 

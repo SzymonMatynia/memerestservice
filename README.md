@@ -11,23 +11,23 @@ To install everything needed just:
 
 # Defined routes(for now)
 ```yaml
-api_get_memes:
+api_get_memes: [GET]
   path: /api/meme
   controller: App\Controller\MemeApiController::getMemes
 
-api_get_meme:
+api_get_meme: [GET]
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::getMeme
 
-api_add_meme:
+api_add_meme: [POST]
   path: /api/meme/add
   controller: App\Controller\MemeApiController::addMeme
 
-api_update_meme:
+api_update_meme: [PUT/PATCH]
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::updateMeme
 
-api_delete_meme:
+api_delete_meme:[DELETE]
   path: /api/meme/{id}
   controller: app\controller\MemeApiController::deleteMeme
 ```

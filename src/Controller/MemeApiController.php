@@ -45,6 +45,7 @@ class MemeApiController extends AbstractController
         if(!$memes)
         {
             return $this->json([
+                'success' => false,
                 'message' => 'No memes!',
             ], 404);
         }
@@ -58,7 +59,7 @@ class MemeApiController extends AbstractController
             $base64 = @base64_encode(file_get_contents($basePath . $mms->getImage()));
             if(empty($base64)) continue; // what should i do?
             $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data[] = ['title' => $mms->getTitle(), 'base64' => $base64, 'type' => $type];
+            $data[] = ['id' => $mms->getId(), 'title' => $mms->getTitle(), 'base64' => $base64, 'type' => $type, 'success' => true];
         }
 
         // use only if dont find solution to unescaped slashes
@@ -111,9 +112,15 @@ class MemeApiController extends AbstractController
         if(!$meme)
         {
             return $this->json([
+                'success' => false,
                 'message' => 'No such id in the database',
             ], 404);
         }
+
+        return $this->json([
+            'success' => true,
+            'message' => 'File deleted',
+        ], 404);
         // delete the file
     }
 
@@ -139,7 +146,7 @@ class MemeApiController extends AbstractController
         $uniq = uniqid();
         if(!$decodedImage)
         {
-            return new JsonResponse(['message' => 'Image not valid.']);
+            return new JsonResponse(['success' => false, 'message' => 'Image not valid.']);
         }
         else
         {
@@ -154,7 +161,7 @@ class MemeApiController extends AbstractController
         $this->em->persist($memeApi);
         $this->em->flush();
 
-        $jsonResponse = new JsonResponse(['message' => 'Image has been added.'], 200, [], false);
+        $jsonResponse = new JsonResponse(['success' => true, 'message' => 'Image has been added.'], 200, [], false);
         return $jsonResponse;
 
     }

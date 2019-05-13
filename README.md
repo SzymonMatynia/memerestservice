@@ -27,7 +27,7 @@ api_update_meme: [PUT/PATCH]
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::updateMeme
 
-api_delete_meme:[DELETE]
+api_delete_meme: [DELETE]
   path: /api/meme/{id}
   controller: app\controller\MemeApiController::deleteMeme
 ```

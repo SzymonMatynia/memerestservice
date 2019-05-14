@@ -23,6 +23,15 @@ class MemeApiController extends AbstractController
     private $serializer;
     private $validator;
     private const IMAGES_PATH = '/public/uploads/';
+
+    /**
+     * MemeApiController constructor.
+     * @param MemeApiRepository $memeApiRepository
+     * @param EntityManagerInterface $em
+     * @param KernelInterface $appKernel
+     * @param SerializerInterface $serializer
+     * @param ValidatorInterface $validator
+     */
     public function __construct(MemeApiRepository $memeApiRepository, EntityManagerInterface $em, KernelInterface $appKernel, SerializerInterface $serializer, ValidatorInterface $validator)
     {
         $this->memeApiRepository = $memeApiRepository;
@@ -32,7 +41,10 @@ class MemeApiController extends AbstractController
         $this->validator = $validator;
     }
 
-    public function getMemes()
+    /**
+     * @return JsonResponse|Response
+     */
+    public function getMemes(): Response
     {
         /* delete the data
         $query = $this->em->getConnection()->query('TRUNCATE meme_api');
@@ -72,13 +84,18 @@ class MemeApiController extends AbstractController
         ], 200);*/
     }
 
-    public function getMeme($id)
+    /**
+     * @param $id
+     * @return Response
+     */
+    public function getMeme($id): Response
     {
         // get the meme of given id
         $meme = $this->memeApiRepository->find($id);
         if(!$meme)
         {
             return $this->json([
+                'success' => false,
                 'message' => 'No such id in the database',
             ], 404);
         }
@@ -106,7 +123,11 @@ class MemeApiController extends AbstractController
 
     }
 
-    public function deleteMeme($id)
+    /**
+     * @param $id
+     * @return JsonResponse
+     */
+    public function deleteMeme($id): Response
     {
         $meme = $this->memeApiRepository->find($id);
         if(!$meme)
@@ -133,7 +154,7 @@ class MemeApiController extends AbstractController
      * @param Request $request
      * @return JsonResponse
      */
-    public function addMeme(Request $request)
+    public function addMeme(Request $request): Response
     {
 
         $data = json_decode($request->getContent(), true);

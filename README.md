@@ -6,6 +6,7 @@ To install everything needed just:
 2. go to the project directory
 3. run "composer install"
 4. ./bin/console server:start
+5. Dont forget to make migrations
 ```
 
 

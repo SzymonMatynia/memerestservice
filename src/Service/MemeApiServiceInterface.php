@@ -9,7 +9,7 @@ interface MemeApiServiceInterface
 {
     public function addMeme(Request $request);
     public function deleteMeme($id);
-    public function updateMeme($id);
+    public function updateMeme($id, $title);
     public function getMeme($id);
     public function getMemes();
 

@@ -22,7 +22,7 @@ api_add_meme:
 api_update_meme:
   path: /api/meme/{id}
   controller: App\Controller\MemeApiController::updateMeme
-  methods: PUT
+  methods: PATCH
   requirements:
     id: '\d+'
 

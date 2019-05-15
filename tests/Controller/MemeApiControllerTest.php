@@ -31,7 +31,7 @@ class MemeApiControllerTest extends WebTestCase
 
         $client->request('GET', '/api/meme/1681115154154151651511151551');
 
-        $this->assertEquals(404, $client->getResponse()->getStatusCode());
+        $this->assertEquals(400, $client->getResponse()->getStatusCode());
     }
 
 

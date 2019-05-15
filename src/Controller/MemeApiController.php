@@ -2,43 +2,24 @@
 
 namespace App\Controller;
 
-use App\Entity\MemeApi;
-use Doctrine\ORM\EntityManager;
+use App\Service\MemeApiServiceInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpKernel\KernelInterface;
-use Symfony\Component\Routing\Annotation\Route;
-use Doctrine\ORM\EntityManagerInterface;
-use App\Repository\MemeApiRepository;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Serializer\SerializerInterface;
 
 class MemeApiController extends AbstractController
 {
-    private $appKernel;
-    private $memeApiRepository;
-    private $em;
-    private $serializer;
-    private $validator;
-    private const IMAGES_PATH = '/public/uploads/';
+    public const IMAGES_PATH = '/public/uploads/';
+    private $memeApiService;
 
     /**
      * MemeApiController constructor.
-     * @param MemeApiRepository $memeApiRepository
-     * @param EntityManagerInterface $em
-     * @param KernelInterface $appKernel
-     * @param SerializerInterface $serializer
-     * @param ValidatorInterface $validator
+     * @param MemeApiServiceInterface $memeApiService
      */
-    public function __construct(MemeApiRepository $memeApiRepository, EntityManagerInterface $em, KernelInterface $appKernel, SerializerInterface $serializer, ValidatorInterface $validator)
+    public function __construct(MemeApiServiceInterface $memeApiService)
     {
-        $this->memeApiRepository = $memeApiRepository;
-        $this->em = $em;
-        $this->appKernel = $appKernel;
-        $this->serializer = $serializer;
-        $this->validator = $validator;
+        $this->memeApiService = $memeApiService;
     }
 
     /**
@@ -50,38 +31,10 @@ class MemeApiController extends AbstractController
         $query = $this->em->getConnection()->query('TRUNCATE meme_api');
         $query->execute();
         */
-
-
-        $memes = $this->memeApiRepository->findAll();
-        // if any meme doesnt exist then return 404
-        if(!$memes)
-        {
-            return $this->json([
-                'success' => false,
-                'message' => 'No memes!',
-            ], 404);
-        }
-        $basePath = $this->appKernel->getProjectDir();
-        $data = [];
-
-        // fill the data variable with appropriate values
-        foreach($memes as $mms)
-        {
-            $path = $basePath . $mms->getImage();
-            $base64 = @base64_encode(file_get_contents($basePath . $mms->getImage()));
-            if(empty($base64)) continue; // what should i do?
-            $type = pathinfo($path, PATHINFO_EXTENSION);
-            $data[] = ['id' => $mms->getId(), 'title' => $mms->getTitle(), 'base64' => $base64, 'type' => $type, 'success' => true];
-        }
-
-        // use only if dont find solution to unescaped slashes
+        $data = $this->memeApiService->getMemes();
         $response = new Response(json_encode($data, JSON_UNESCAPED_SLASHES), 200, ['application/json']);
         $response->headers->set('Content-Type', 'application/json');
         return $response;
-
-        /*return $this->json([
-            'data' =>  $data,
-        ], 200);*/
     }
 
     /**
@@ -90,36 +43,18 @@ class MemeApiController extends AbstractController
      */
     public function getMeme($id): Response
     {
-        // get the meme of given id
-        $meme = $this->memeApiRepository->find($id);
-        if(!$meme)
-        {
-            return $this->json([
-                'success' => false,
-                'message' => 'No such id in the database',
-            ], 404);
-        }
-        $basePath = $this->appKernel->getProjectDir();
-        $data = [];
 
-        $path = $basePath . $meme->getImage();
+        $response = $this->memeApiService->getMeme($id);
 
-        $base64 = base64_encode(file_get_contents($basePath . $meme->getImage()));
+        if($response['success'] === false) return new JsonResponse($response, 400);
 
-        $type = pathinfo($path, PATHINFO_EXTENSION);
+        $response = new Response(
+            json_encode($response, JSON_UNESCAPED_SLASHES),
+            200,
+            ['application/json']);
 
-        $data[] = ['title' => $meme->getTitle(), 'base64' => "$base64", 'type' => $type];
-
-
-        // use only if dont find solution to unescaped slashes
-        $response = new Response(json_encode($data, JSON_UNESCAPED_SLASHES), 200, ['application/json']);
         $response->headers->set('Content-Type', 'application/json');
         return $response;
-
-
-        /*return $this->json([
-            $data,
-        ], 200);*/
 
     }
 
@@ -129,20 +64,7 @@ class MemeApiController extends AbstractController
      */
     public function deleteMeme($id): Response
     {
-        $meme = $this->memeApiRepository->find($id);
-        if(!$meme)
-        {
-            return $this->json([
-                'success' => false,
-                'message' => 'No such id in the database',
-            ], 404);
-        }
-
-        return $this->json([
-            'success' => true,
-            'message' => 'File deleted',
-        ], 404);
-        // delete the file
+        return new JsonResponse(['success'=> true]);
     }
 
     public function updateMeme()
@@ -157,33 +79,11 @@ class MemeApiController extends AbstractController
     public function addMeme(Request $request): Response
     {
 
-        $data = json_decode($request->getContent(), true);
+        $response = $this->memeApiService->addMeme($request);
 
-        $title = $data['title'];
-        if(!$title) return new JsonResponse(['message' => 'You must provide title']);
-        $image = $data['image'];
-        $base64Image = @explode(',', $image)[1];
-        $decodedImage = base64_decode($base64Image, true);
-        $uniq = uniqid();
-        if(!$decodedImage)
-        {
-            return new JsonResponse(['success' => false, 'message' => 'Image not valid.']);
-        }
-        else
-        {
-            $imageType = explode('/', mime_content_type($image))[1];
-            file_put_contents($this->appKernel->getProjectDir() . MemeApiController::IMAGES_PATH . $uniq . "_" . $title . "." . $imageType, $decodedImage);
-        }
+        if($response['success'] === false) return new JsonResponse($response, 400);
 
-        $memeApi = new MemeApi();
-
-        $memeApi->setTitle($uniq . "_" . $title)->setImage(MemeApiController::IMAGES_PATH . $uniq . "_" . $title . "." . $imageType);
-
-        $this->em->persist($memeApi);
-        $this->em->flush();
-
-        $jsonResponse = new JsonResponse(['success' => true, 'message' => 'Image has been added.'], 200, [], false);
-        return $jsonResponse;
+        return new JsonResponse($response, 200);
 
     }
 }
